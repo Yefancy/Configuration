@@ -52,10 +52,18 @@ jar {
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
+			artifactId = "configuration-fabric-${mc_version}"
 			from components.java
 		}
 	}
 
 	repositories {
+		maven {
+			url "https://maven.firstdarkdev.xyz/snapshots"
+			credentials {
+				username System.getenv("MAVEN_USER")
+				password System.getenv("MAVEN_PASS")
+			}
+		}
 	}
 }

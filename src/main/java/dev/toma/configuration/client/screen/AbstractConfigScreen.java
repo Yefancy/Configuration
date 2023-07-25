@@ -11,12 +11,14 @@ import dev.toma.configuration.config.validate.NotificationSeverity;
 import dev.toma.configuration.config.value.ConfigValue;
 import dev.toma.configuration.config.value.ObjectValue;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import org.apache.logging.log4j.Marker;
@@ -49,7 +51,7 @@ public abstract class AbstractConfigScreen extends Screen {
         this.saveConfig(true);
     }
 
-    public static void renderScrollbar(PoseStack stack, int x, int y, int width, int height, int index, int valueCount, int paging) {
+    public static void renderScrollbar(GuiGraphics graphics, int x, int y, int width, int height, int index, int valueCount, int paging) {
         if (valueCount <= paging)
             return;
         double step = height / (double) valueCount;
@@ -57,11 +59,11 @@ public abstract class AbstractConfigScreen extends Screen {
         int max = Mth.ceil((index + paging) * step);
         int y1 = y + min;
         int y2 = y + max;
-        fill(stack, x, y, x + width, y + height, 0xFF << 24);
+        graphics.fill(x, y, x + width, y + height, 0xFF << 24);
 
-        fill(stack, x, y1, x + width, y2, 0xFF888888);
-        fill(stack, x, y1, x + width - 1, y2 - 1, 0xFFEEEEEE);
-        fill(stack, x + 1, y1 + 1, x + width - 1, y2 - 1, 0xFFCCCCCC);
+        graphics.fill(x, y1, x + width, y2, 0xFF888888);
+        graphics.fill(x, y1, x + width - 1, y2 - 1, 0xFFEEEEEE);
+        graphics.fill(x + 1, y1 + 1, x + width - 1, y2 - 1, 0xFFCCCCCC);
     }
 
     protected void addFooter() {
@@ -137,7 +139,23 @@ public abstract class AbstractConfigScreen extends Screen {
         }
     }
 
-    public void renderNotification(NotificationSeverity severity, PoseStack stack, List<FormattedCharSequence> texts, int mouseX, int mouseY) {
+    private void fillGradient(PoseStack poseStack, VertexConsumer vertexConsumer, int i, int j, int k, int l, int m, int n, int o) {
+        float f = (float) FastColor.ARGB32.alpha(n) / 255.0F;
+        float g = (float) FastColor.ARGB32.red(n) / 255.0F;
+        float h = (float) FastColor.ARGB32.green(n) / 255.0F;
+        float p = (float) FastColor.ARGB32.blue(n) / 255.0F;
+        float q = (float) FastColor.ARGB32.alpha(o) / 255.0F;
+        float r = (float) FastColor.ARGB32.red(o) / 255.0F;
+        float s = (float) FastColor.ARGB32.green(o) / 255.0F;
+        float t = (float) FastColor.ARGB32.blue(o) / 255.0F;
+        Matrix4f matrix4f = poseStack.last().pose();
+        vertexConsumer.vertex(matrix4f, (float)i, (float)j, (float)m).color(g, h, p, f).endVertex();
+        vertexConsumer.vertex(matrix4f, (float)i, (float)l, (float)m).color(r, s, t, q).endVertex();
+        vertexConsumer.vertex(matrix4f, (float)k, (float)l, (float)m).color(r, s, t, q).endVertex();
+        vertexConsumer.vertex(matrix4f, (float)k, (float)j, (float)m).color(g, h, p, f).endVertex();
+    }
+
+    public void renderNotification(NotificationSeverity severity, GuiGraphics graphics, List<FormattedCharSequence> texts, int mouseX, int mouseY) {
         if (!texts.isEmpty()) {
             int maxTextWidth = 0;
             int iconOffset = 13;
@@ -166,7 +184,7 @@ public abstract class AbstractConfigScreen extends Screen {
                 startY = this.height - heightOffset - 6;
             }
 
-            stack.pushPose();
+            graphics.pose().pushPose();
             int background = severity.background;
             int fadeMin = severity.fadeMin;
             int fadeMax = severity.fadeMax;
@@ -175,16 +193,14 @@ public abstract class AbstractConfigScreen extends Screen {
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
             BufferBuilder bufferbuilder = tessellator.getBuilder();
             bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-            Matrix4f matrix4f = stack.last().pose();
-            fillGradient(matrix4f, bufferbuilder, startX - 3, startY - 4, startX + maxTextWidth + 3, startY - 3, zIndex, background, background);
-            fillGradient(matrix4f, bufferbuilder, startX - 3, startY + heightOffset + 3, startX + maxTextWidth + 3, startY + heightOffset + 4, zIndex, background, background);
-            fillGradient(matrix4f, bufferbuilder, startX - 3, startY - 3, startX + maxTextWidth + 3, startY + heightOffset + 3, zIndex, background, background);
-            fillGradient(matrix4f, bufferbuilder, startX - 4, startY - 3, startX - 3, startY + heightOffset + 3, zIndex, background, background);
-            fillGradient(matrix4f, bufferbuilder, startX + maxTextWidth + 3, startY - 3, startX + maxTextWidth + 4, startY + heightOffset + 3, zIndex, background, background);
-            fillGradient(matrix4f, bufferbuilder, startX - 3, startY - 3 + 1, startX - 3 + 1, startY + heightOffset + 3 - 1, zIndex, fadeMin, fadeMax);
-            fillGradient(matrix4f, bufferbuilder, startX + maxTextWidth + 2, startY - 3 + 1, startX + maxTextWidth + 3, startY + heightOffset + 3 - 1, zIndex, fadeMin, fadeMax);
-            fillGradient(matrix4f, bufferbuilder, startX - 3, startY - 3, startX + maxTextWidth + 3, startY - 3 + 1, zIndex, fadeMin, fadeMin);
-            fillGradient(matrix4f, bufferbuilder, startX - 3, startY + heightOffset + 2, startX + maxTextWidth + 3, startY + heightOffset + 3, zIndex, fadeMax, fadeMax);
+            fillGradient(graphics.pose(), bufferbuilder, startX - 3, startY + heightOffset + 3, startX + maxTextWidth + 3, startY + heightOffset + 4, zIndex, background, background);
+            fillGradient(graphics.pose(), bufferbuilder, startX - 3, startY - 3, startX + maxTextWidth + 3, startY + heightOffset + 3, zIndex, background, background);
+            fillGradient(graphics.pose(), bufferbuilder, startX - 4, startY - 3, startX - 3, startY + heightOffset + 3, zIndex, background, background);
+            fillGradient(graphics.pose(), bufferbuilder, startX + maxTextWidth + 3, startY - 3, startX + maxTextWidth + 4, startY + heightOffset + 3, zIndex, background, background);
+            fillGradient(graphics.pose(), bufferbuilder, startX - 3, startY - 3 + 1, startX - 3 + 1, startY + heightOffset + 3 - 1, zIndex, fadeMin, fadeMax);
+            fillGradient(graphics.pose(), bufferbuilder, startX + maxTextWidth + 2, startY - 3 + 1, startX + maxTextWidth + 3, startY + heightOffset + 3 - 1, zIndex, fadeMin, fadeMax);
+            fillGradient(graphics.pose(), bufferbuilder, startX - 3, startY - 3, startX + maxTextWidth + 3, startY - 3 + 1, zIndex, fadeMin, fadeMin);
+            fillGradient(graphics.pose(), bufferbuilder, startX - 3, startY + heightOffset + 2, startX + maxTextWidth + 3, startY + heightOffset + 3, zIndex, fadeMax, fadeMax);
             RenderSystem.enableDepthTest();
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
@@ -197,6 +213,7 @@ public abstract class AbstractConfigScreen extends Screen {
                 bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
                 float min = -0.5f;
                 float max = 8.5f;
+                var matrix4f = graphics.pose().last().pose();
                 bufferbuilder.vertex(matrix4f, startX + min, startY + min, zIndex).uv(0.0F, 0.0F).endVertex();
                 bufferbuilder.vertex(matrix4f, startX + min, startY + max, zIndex).uv(0.0F, 1.0F).endVertex();
                 bufferbuilder.vertex(matrix4f, startX + max, startY + max, zIndex).uv(1.0F, 1.0F).endVertex();
@@ -207,13 +224,13 @@ public abstract class AbstractConfigScreen extends Screen {
 
             RenderSystem.disableBlend();
             MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-            stack.translate(0.0D, 0.0D, zIndex);
+            graphics.pose().translate(0.0D, 0.0D, zIndex);
 
             int textOffset = severity.isOkStatus() ? 0 : iconOffset;
             for(int i = 0; i < texts.size(); i++) {
                 FormattedCharSequence textComponent = texts.get(i);
                 if (textComponent != null) {
-                    this.font.drawInBatch(textComponent, (float)startX + textOffset, (float)startY, -1, true, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xf000f0);
+                    this.font.drawInBatch(textComponent, (float)startX + textOffset, (float)startY, -1, true, graphics.pose().last().pose(), bufferSource, Font.DisplayMode.NORMAL, 0, 0xf000f0);
                 }
 
                 if (i == 0) {
@@ -224,7 +241,7 @@ public abstract class AbstractConfigScreen extends Screen {
             }
 
             bufferSource.endBatch();
-            stack.popPose();
+            graphics.pose().popPose();
         }
     }
 
