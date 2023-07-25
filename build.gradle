@@ -125,7 +125,7 @@ jar.finalizedBy('reobfJar')
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifactId = "${mod_id}-forge-${minecraft_version}-${mod_version}"
+            artifactId = "${mod_id}-forge-${minecraft_version}"
             artifact jar
         }
     }
